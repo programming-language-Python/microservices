@@ -38,6 +38,13 @@ async def get_payment(
     return await payment_service.get(payment_id)
 
 
+@app.get("/payments", response_model=list[PaymentReadSchema])
+async def get_payment(
+        payment_service: PaymentService = Depends(get_payment_service)
+):
+    return await payment_service.get_all()
+
+
 # имитация платежа
 @app.post("/payments/", response_model=PaymentCreateSchema)
 async def create_payment(
@@ -47,10 +54,9 @@ async def create_payment(
 ):
     payment = await payment_service.create(payload)
 
-    await payment_service.complete_payment(
+    return await payment_service.complete_payment(
         payment,
         order_id=payment.order_id,
-        user_id=payment.user_id,
         amount=payment.amount,
         exchange=request.app.state.payment_exchange
     )

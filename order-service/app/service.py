@@ -1,3 +1,4 @@
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .api_clients import CatalogClient, PaymentClient
@@ -45,3 +46,7 @@ class OrderService:
             raise NotFoundError
 
         return order
+
+    def get_all(self):
+        stmt = select(Order)
+        return list(self.session.scalars(stmt).all())

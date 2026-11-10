@@ -40,6 +40,16 @@ def get_order(
     return order_service.get(order_id)
 
 
+@app.get(
+    "/orders",
+    response_model=list[OrderReadSchema]
+)
+def get_order(
+        order_service: OrderService = Depends(get_order_service)
+):
+    return order_service.get_all()
+
+
 @app.post(
     "/orders",
     response_model=OrderCreateSchema

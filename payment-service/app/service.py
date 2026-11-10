@@ -2,6 +2,7 @@ import asyncio
 from uuid import uuid4
 
 from aio_pika.abc import AbstractExchange
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import PaymentORM
@@ -15,7 +16,7 @@ class PaymentService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def create(self, payment_data: PaymentCreateSchema) -> PaymentReadSchema:
+    async def create(self, payment_data: PaymentCreateSchema):
         payment = PaymentORM(
             order_id=payment_data.order_id,
             status="created",
@@ -23,7 +24,11 @@ class PaymentService:
         )
         self.session.add(payment)
         await self.session.commit()
-        return PaymentReadSchema.model_validate(payment)
+        return payment
+
+    async def get_all(self):
+        stmt = select(PaymentORM)
+        return list((await self.session.scalars(stmt)).all())
 
     async def get(self, payment_id: str):
         payment = await self.session.get(PaymentORM, payment_id)
@@ -36,7 +41,6 @@ class PaymentService:
             self,
             payment: PaymentORM,
             order_id: str,
-            user_id: int,
             amount: int,
             exchange: AbstractExchange
     ):
@@ -48,9 +52,10 @@ class PaymentService:
         event = {
             "event_id": str(uuid4),
             "order_id": order_id,
-            "user_id": user_id,
             "status": "succeeded",
             "amount": amount
         }
 
         await event_publish_json(exchange, settings.payment_succeeded_routing_key, data=event)
+
+        return PaymentReadSchema.model_validate(payment)
