@@ -1,0 +1,106 @@
+name: orderflow
+
+services:
+  catalog-db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: catalog
+      POSTGRES_USER: catalog
+      POSTGRES_PASSWORD: catalog
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U catalog -d catalog" ]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  order-db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: orders
+      POSTGRES_USER: orders
+      POSTGRES_PASSWORD: orders
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U orders -d orders" ]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  payment-db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: payments
+      POSTGRES_USER: payments
+      POSTGRES_PASSWORD: payments
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U payments -d payments" ]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: orderflow
+      RABBITMQ_DEFAULT_PASS: orderflow
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+#      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      test: [ "CMD", "rabbitmqctl", "status" ]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+
+  catalog-service:
+    build: ./catalog-service
+    environment:
+      DATABASE_URL: postgresql+psycopg2://catalog:catalog@catalog-db:5432/catalog
+    ports:
+      - "8001:8000"
+    depends_on:
+      catalog-db:
+        condition: service_healthy
+
+  payment-service:
+    build: ./payment-service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://payments:payments@payment-db:5432/payments
+      RABBITMQ_URL: amqp://orderflow:orderflow@rabbitmq:5672/
+      PAYMENT_EXCHANGE_NAME: payment.evenvs
+      PAYMENT_SUCCEEDED_ROUTING_KEY: payment.succeeded
+    ports:
+      - "8003:8000"
+    depends_on:
+      payment-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  order-service:
+    build: ./order-service
+    environment:
+      DATABASE_URL: postgresql+psycopg2://orders:orders@order-db:5432/orders
+      CATALOG_SERVICE_URL: http://catalog-service:8000
+      PAYMENT_SERVICE_URL: http://payment-service:8000
+      RABBITMQ_URL: amqp://orderflow:orderflow@rabbitmq:5672/
+      PAYMENT_EXCHANGE_NAME: payment.evenvs
+      PAYMENT_QUEUE_NAME: payment.results
+      PAYMENT_SUCCEEDED_ROUTING_KEY: payment.succeeded
+    ports:
+      - "8002:8000"
+    depends_on:
+      order-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      catalog-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_started
