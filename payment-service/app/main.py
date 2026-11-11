@@ -46,7 +46,7 @@ async def get_payment(
 
 
 # имитация платежа
-@app.post("/payments/", response_model=PaymentCreateSchema)
+@app.post("/payments", response_model=PaymentCreateSchema)
 async def create_payment(
         request: Request,
         payload: PaymentCreateSchema,

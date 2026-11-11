@@ -34,7 +34,7 @@ app = FastAPI(lifespan=lifespan)
     response_model=OrderReadSchema
 )
 def get_order(
-        order_id: int,
+        order_id: str,
         order_service: OrderService = Depends(get_order_service)
 ):
     return order_service.get(order_id)
@@ -52,7 +52,7 @@ def get_order(
 
 @app.post(
     "/orders",
-    response_model=OrderCreateSchema
+    response_model=OrderReadSchema
 )
 def create_order(
         payload: OrderCreateSchema,
