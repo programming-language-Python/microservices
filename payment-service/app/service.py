@@ -50,7 +50,7 @@ class PaymentService:
         await self.session.commit()
 
         event = {
-            "event_id": str(uuid4),
+            "event_id": str(uuid4()),
             "order_id": order_id,
             "status": "succeeded",
             "amount": amount
