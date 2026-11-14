@@ -4,6 +4,8 @@ import aio_pika
 from aio_pika.abc import AbstractRobustConnection, AbstractChannel, AbstractExchange
 
 
+# Producer
+
 async def connect_rabbitmq(url: str) -> AbstractRobustConnection:
     return await aio_pika.connect_robust(url)
 

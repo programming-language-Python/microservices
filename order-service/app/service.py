@@ -32,7 +32,6 @@ class OrderService:
             order.items = [OrderItem(order_id=order.id, **product) for product in products]
             self.session.commit()
 
-            # RabbitMQ consumer
             self.payment_client.create_payment(
                 order_id=order.id,
                 amount=total_amount
