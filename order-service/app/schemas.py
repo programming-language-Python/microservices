@@ -26,7 +26,7 @@ class OrderReadSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
-    user_id: int
+    user_id: str
     status: str
     total_amount: int
     items: list[OrderItemReadSchema]
