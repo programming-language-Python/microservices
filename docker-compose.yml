@@ -57,6 +57,20 @@ services:
       timeout: 3s
       retries: 30
 
+  auth-db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: auth
+      POSTGRES_USER: auth
+      POSTGRES_PASSWORD: auth
+    expose:
+      - "5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U auth -d auth" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     environment:
@@ -140,6 +154,35 @@ services:
       catalog-service:
         condition: service_started
       payment-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+
+  auth-service:
+    build: ./auth-service
+    environment:
+      DATABASE_URL: postgresql+psycopg2://auth:auth@auth-db:5432/auth
+      JWT_SECRET: ${JWT_SECRET:-orderflow-local-jwt-secret-change-me}
+      JWT_ALGORITHM: HS256
+    depends_on:
+      auth-db:
+        condition: service_healthy
+
+  api-gateway:
+    build: ./api-gateway
+    environment:
+      DATABASE_URL: postgresql+psycopg2://orders:orders@order-db:5432/orders
+      CATALOG_SERVICE_URL: http://catalog-service:8000
+      ORDER_SERVICE_URL: http://order-service:8000
+      AUTH_SERVICE_URL: http://auth-service:8000
+      JWT_SECRET: ${JWT_SECRET:-orderflow-local-jwt-secret-change-me}
+      JWT_ALGORITHM: HS256
+    ports:
+      - "${API_GATEWAY_PORT:-8000}:8000"
+    depends_on:
+      auth-service:
+        condition: service_started
+      catalog-service:
         condition: service_started
       order-service:
         condition: service_started
