@@ -8,6 +8,8 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://payments:payments@localhost:5435/payments"
     )
     rabbitmq_url: str = "amqp://guest:guest@localhost:5672"
+    kafka_bootstrap_server: str = "localhost:9092"
+    kafka_analytic_payment_topic: str = "payment-events"
     payment_succeeded_routing_key: str = "payment.succeeded"
     payment_queue_name: str = "payment.results"
     payment_exchange_name: str = "payment.events"

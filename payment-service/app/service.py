@@ -1,10 +1,12 @@
 import asyncio
-from uuid import uuid4
 
 from aio_pika.abc import AbstractExchange
+from aiokafka import AIOKafkaProducer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from events import build_payment_succeeded_event
+from kafka import publish_kafka_event
 from .models import PaymentORM
 from .config import NotFoundError, settings
 from .rabbitmq import event_publish_json
@@ -42,20 +44,18 @@ class PaymentService:
             payment: PaymentORM,
             order_id: str,
             amount: int,
-            exchange: AbstractExchange
+            exchange: AbstractExchange,
+            kafka_producer: AIOKafkaProducer
     ):
         await asyncio.sleep(4)  # имитация оплаты пользователем
 
         payment.status = "succeeded"
         await self.session.commit()
 
-        event = {
-            "event_id": str(uuid4()),
-            "order_id": order_id,
-            "status": "succeeded",
-            "amount": amount
-        }
+        event = build_payment_succeeded_event(payment.id, order_id, amount)
 
         await event_publish_json(exchange, settings.payment_succeeded_routing_key, data=event)
+
+        await publish_kafka_event(kafka_producer, event)
 
         return PaymentReadSchema.model_validate(payment)
