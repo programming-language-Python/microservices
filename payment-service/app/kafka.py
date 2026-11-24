@@ -1,6 +1,8 @@
+import json
+
 from aiokafka import AIOKafkaProducer
 
-from config import settings
+from .config import settings
 
 
 def create_kafka_producer():
@@ -8,4 +10,5 @@ def create_kafka_producer():
 
 
 async def publish_kafka_event(producer: AIOKafkaProducer, topic: str, event: dict):
-    return producer.send_and_wait(topic, value=event)
+    payload = json.dumps(event).encode()
+    return await producer.send_and_wait(topic, value=payload)

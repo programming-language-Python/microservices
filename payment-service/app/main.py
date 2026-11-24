@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from aiokafka import AIOKafkaProducer
 from fastapi import Depends, FastAPI, Request
 
-from kafka import create_kafka_producer
+from .kafka import create_kafka_producer
 from .config import settings
 from .database import engine
 from .models import Base
@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
     channel = await rabbitmq_connection.channel()
     app.state.payment_exchange = await declare_payment_exchange(channel, settings.payment_exchange_name)
 
-    kafka_producer: AIOKafkaProducer = await create_kafka_producer()
+    kafka_producer: AIOKafkaProducer = create_kafka_producer()
     kafka_producer.start()
     app.state.kafka_producer = kafka_producer
 

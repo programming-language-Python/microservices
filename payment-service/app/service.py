@@ -5,8 +5,8 @@ from aiokafka import AIOKafkaProducer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from events import build_payment_succeeded_event
-from kafka import publish_kafka_event
+from .events import build_payment_succeeded_event
+from .kafka import publish_kafka_event
 from .models import PaymentORM
 from .config import NotFoundError, settings
 from .rabbitmq import event_publish_json
@@ -56,6 +56,6 @@ class PaymentService:
 
         await event_publish_json(exchange, settings.payment_succeeded_routing_key, data=event)
 
-        await publish_kafka_event(kafka_producer, event)
+        await publish_kafka_event(kafka_producer, settings.kafka_analytic_payment_topic, event)
 
         return PaymentReadSchema.model_validate(payment)
