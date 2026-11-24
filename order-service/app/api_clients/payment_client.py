@@ -13,5 +13,5 @@ class PaymentClient:
         # это нужно через Pydantic делать для простоты это опущено
         json_data = {"order_id": order_id, "amount": amount}
         response = httpx.post(f"{self.base_url}/payments", json=json_data)
-        response.raise_for_status()
+        response.raise_for_status()  # показывает из-за чего ошибка
         return response.json()
