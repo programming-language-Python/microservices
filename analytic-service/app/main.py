@@ -9,7 +9,7 @@ from .database import mongodb_client, events_collection
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    task = asyncio.create_task(consume_events)
+    task = asyncio.create_task(consume_events(events_collection))
 
     try:
         yield
