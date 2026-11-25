@@ -28,5 +28,10 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/events")
 async def get_events(limit: int = 20):
-    query = events_collection.find().sort("created_at", -1).limit(limit)
-    return query.to_list(limit)
+    query = (
+        events_collection
+        .find({}, {"_id": 0})
+        .sort("created_at", -1)
+        .limit(limit)
+    )
+    return await query.to_list(limit)
