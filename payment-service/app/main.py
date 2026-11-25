@@ -24,7 +24,7 @@ async def lifespan(app: FastAPI):
     app.state.payment_exchange = await declare_payment_exchange(channel, settings.payment_exchange_name)
 
     kafka_producer: AIOKafkaProducer = create_kafka_producer()
-    kafka_producer.start()
+    await kafka_producer.start()
     app.state.kafka_producer = kafka_producer
 
     try:
