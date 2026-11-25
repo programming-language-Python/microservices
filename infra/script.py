@@ -1,0 +1,21 @@
+import json
+import urllib.request
+
+payload = {
+    "name": "Тестовая кружка",
+    "description": "Демо-товар для проверки каталога и оформления заказа",
+    "price": 1290,
+    "image": "https://images.unsplash.com/photo-1514228742587-6b1558fef93a?auto=format&fit=crop&w=900&q=80",
+    "category": "Демо"
+}
+
+request = urllib.request.Request(
+    "http://127.0.0.1:8001/products",
+    data=json.dumps(payload).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+
+with urllib.request.urlopen(request) as response:
+    print(response.status)
+    print(response.read().decode("utf-8"))
