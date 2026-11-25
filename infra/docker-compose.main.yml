@@ -19,6 +19,28 @@ services:
     expose:
       - "80"
 
+  mongodb:
+    image: mongo:8.0
+    # отключение логов
+    attach: false
+    command: [ "--quiet" ]
+    #
+    logging:
+      driver: "none"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: analytics
+      MONGO_INITDB_ROOT_PASSWORD: analytics # поменять
+    expose:
+      - "27017"
+    volumes:
+      - mongodb-data:/data/db
+    healthcheck:
+      # поменять
+      test: [ "CMD", "mongosh", "--quiet", "--username", "analytics", "--password", "analytics", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping').ok" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   catalog-db:
     image: postgres:18-alpine
     environment:
@@ -104,6 +126,30 @@ services:
       timeout: 5s
       retries: 30
 
+  kafka:
+    image: apache/kafka:4.3.1
+    ports:
+      - "${KAFKA_BIND_HOST}:9092:9092"
+    environment:
+      # базовый шаблон kafka
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: CONTROLLER://:9093,PLAINTEXT://:29092,PLAINTEXT_HOST://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://${KAFKA_EXTERNAL_HOST}:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 --list" ]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
   catalog-service:
     build: ../catalog-service
     environment:
@@ -127,6 +173,23 @@ services:
       payment-db:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+
+  analytic-service:
+    build:
+      context: ../analytic-service
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPIC: payment-events
+      MONGODB_URL: mongodb://analytics:analytics@mongodb:27017/?authService=admin
+      MONGODB_DATABASE: analytics
+      MONGODB_COLLECTION: events
+    ports:
+      - "${ANALYTIC_SERVICE_PORT:-8005}:8000"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mongodb:
         condition: service_healthy
 
   order-service:
