@@ -24,20 +24,20 @@ class OrderService:
                 "quantity": item.quantity,
                 "unit_price": product["price"],
             })
-            total_amount = sum([product["unit_price"] * product["quantity"] for product in products])
-            order = Order(user_id=order_data.user_id, status="created", total_amount=total_amount)
-            self.session.add(order)
-            self.session.flush()
+        total_amount = sum([product["unit_price"] * product["quantity"] for product in products])
+        order = Order(user_id=order_data.user_id, status="created", total_amount=total_amount)
+        self.session.add(order)
+        self.session.flush()
 
-            order.items = [OrderItem(order_id=order.id, **product) for product in products]
-            self.session.commit()
+        order.items = [OrderItem(order_id=order.id, **product) for product in products]
+        self.session.commit()
 
-            self.payment_client.create_payment(
-                order_id=order.id,
-                amount=total_amount
-            )
+        self.payment_client.create_payment(
+            order_id=order.id,
+            amount=total_amount
+        )
 
-            return OrderReadSchema.model_validate(order)
+        return OrderReadSchema.model_validate(order)
 
     def get(self, order_id: str):
         order = self.session.get(Order, order_id)
