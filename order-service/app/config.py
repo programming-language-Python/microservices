@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     payment_queue_name: str = "payment.results"
     payment_exchange_name: str = "payment.events"
 
+    kafka_bootstrap_server: str = "localhost:9092"
+    kafka_analytic_payment_topic: str = "payment-events"
+
 
 settings = Settings()
 

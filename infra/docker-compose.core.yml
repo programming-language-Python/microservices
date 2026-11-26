@@ -70,6 +70,8 @@ services:
       CATALOG_SERVICE_URL: http://catalog-service:8000
       PAYMENT_SERVICE_URL: http://payment-service:8000
       RABBITMQ_URL: amqp://orderflow:orderflow@rabbitmq:5672/
+      KAFKA_BOOTSTRAP_SERVER: kafka:29092
+      KAFKA_ANALYTIC_PAYMENT_TOPIC: payment-events
       PAYMENT_EXCHANGE_NAME: payment.events
       PAYMENT_QUEUE_NAME: payment.results
       PAYMENT_SUCCEEDED_ROUTING_KEY: payment.succeeded

@@ -1,6 +1,9 @@
 from contextlib import asynccontextmanager
-from fastapi import Depends, FastAPI
 
+from aiokafka import AIOKafkaProducer
+from fastapi import Depends, FastAPI, Request
+
+from .kafka import create_kafka_producer, publish_kafka_event
 from .config import settings
 from .database import engine
 from .models import Base
@@ -20,9 +23,14 @@ async def lifespan(_: FastAPI):
     connection = await connect_rabbitmq(settings.rabbitmq_url)
     await start_payments_consume(connection)
 
+    kafka_producer: AIOKafkaProducer = create_kafka_producer()
+    await kafka_producer.start()
+    app.state.kafka_producer = kafka_producer
+
     try:
         yield
     finally:
+        await kafka_producer.stop()
         await connection.close()
 
 
@@ -54,8 +62,17 @@ def get_order(
     "/orders",
     response_model=OrderReadSchema
 )
-def create_order(
+async def create_order(
+        request: Request,
         payload: OrderCreateSchema,
         order_service: OrderService = Depends(get_order_service)
 ):
-    return order_service.create(payload)
+    order = order_service.create(payload)
+
+    await publish_kafka_event(
+        producer=request.app.state.kafka_producer,
+        topic=settings.kafka_analytic_payment_topic,
+        event=order.model_dump()
+    )
+
+    return order
